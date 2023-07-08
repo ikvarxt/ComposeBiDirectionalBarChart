@@ -38,8 +38,12 @@ data class BiDirectionalBarData(
 
 data class BiDirectionalBarChartConfig(
     val chartLineCount: Int = 5,
+    val chartLineGapCount: Int = chartLineCount - 1,
     val chartLabelNumberMin: Float = 40f,
     val chartLabelNumberMax: Float = 200f,
+    val chartLabelNumberRangeSize: Float = chartLabelNumberMax - chartLabelNumberMin,
+
+    val useFloatLabel: Boolean = true,
 
     val barWidth: Dp = 30.dp,
     val barCornerRadius: Float = 24f,
@@ -51,7 +55,7 @@ data class BiDirectionalBarChartConfig(
     val dotLineColor: Color = Color.Black,
     val backgroundColor: Color = Color.White,
     val rulerLabelTextColor: Color = Color.Black,
-    val barColor: Color = Color.Magenta
+    val barColor: Color = Color.Cyan
 )
 
 @OptIn(ExperimentalTextApi::class)
@@ -60,7 +64,6 @@ private fun BarRect(
     data: BiDirectionalBarData,
     config: BiDirectionalBarChartConfig,
     modifier: Modifier = Modifier,
-    color: Color = Color.Blue,
 ) {
     val dataHeight = data.high - data.low
     val textMeasurer = rememberTextMeasurer()
@@ -94,7 +97,7 @@ private fun BarRect(
             drawRoundRect(
                 cornerRadius = CornerRadius(config.barCornerRadius),
                 size = rectSize,
-                color = color,
+                color = config.barColor,
                 topLeft = Offset(x = horizontalOffset(rectSize.width.toInt()), y = offset)
             )
 
@@ -142,14 +145,19 @@ fun BiDirectionalBarChart(
                 val pathEffect = PathEffect.dashPathEffect(floatArrayOf(config.dotSize.toPx(), 20f))
 
                 for (i in 0 until config.chartLineCount) {
-                    val labelTextNumber =
-                        (config.chartLabelNumberMax - i * ((config.chartLabelNumberMax - config.chartLabelNumberMin) / (config.chartLineCount - 1)))
+                    val labelTextNumber = (config.chartLabelNumberMax -
+                            i * (config.chartLabelNumberRangeSize / config.chartLineGapCount))
+                    val labelText = if (config.useFloatLabel) {
+                        "%.1f".format(labelTextNumber)
+                    } else {
+                        labelTextNumber.toInt().toString()
+                    }
+
                     val measuredText = textMeasurer.measure(
-                        AnnotatedString(labelTextNumber.toString()),
+                        AnnotatedString(labelText),
                         style = TextStyle(fontSize = 14.sp),
                     )
                     val heightOffset = (i * incHeightSize).toFloat()
-                    // TODO: make label number format configurable
                     drawText(
                         measuredText,
                         topLeft = Offset(
@@ -185,7 +193,7 @@ fun BiDirectionalBarChart(
 @Preview(widthDp = 550, heightDp = 300, showBackground = true)
 @Composable
 private fun ComposeBiDirectionalBarChartPreview() {
-    Box (Modifier.height(300.dp)){
+    Box(Modifier.height(300.dp)) {
         val list = listOf(
             BiDirectionalBarData(94, 80),
             BiDirectionalBarData(106, 80),
